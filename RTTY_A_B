@@ -1,0 +1,340 @@
+
+// ------------------begin ESP8266'centric----------------------------------
+#define FREQUENCY    160                  // valid 80, 160
+//
+#include "ESP8266WiFi.h"
+extern "C" {
+#include "user_interface.h"
+}
+// ------------------end ESP8266'centric------------------------------------
+
+
+#define AFSK_OUT 12   //---- AFSK AUDIO OUTPUT en ESP8266 pin D6
+#define FSK_OUT  13   //---- TTL LEVEL OUTPUT
+
+#define SHIFT     170
+#define MARK     2125
+#define SPACE    MARK - SHIFT
+#define DUTY     510
+
+/*      EU              USA
+170 Hz  2125 / 1955 Hz  2295 / 2125 Hz
+425 Hz  2125 / 1700 Hz  2295 / 1870 Hz
+850 Hz  2125 / 1275 Hz  2295 / 1445 Hz
+ 85 Hz  2125 / 2040 Hz  2295 / 2210 Hz
+255 Hz  2125 / 1870 Hz  2295 / 20        pinMode(AFSK_OUT, OUTPUT);40 Hz
+340 Hz  2125 / 1785 Hz  2295 / 1955 Hz
+680 Hz  2125 / 1445 Hz  2295 / 1615 Hz */
+
+int baud = 22;   // 22ms = 45.5 bd -- 20ms = 50 bd 
+int abaud = 20150/2 ; // 50 baud
+// abaud = 3370/2 ; // 300 baud
+
+/*Baud bit length  char length   char/sec  char/min  words/min
+45.5 Bd   22 ms     0.165 s   6     364    60
+  50 Bd   20 ms     0.15 s    6.67  400    66
+  75 Bd   13.33 ms  0.1 s     10    600   100
+ 100 Bd   10 ms     0.075 s   13.33 800   133 */
+ 
+
+void setup()
+{  
+  /* Initializations */
+// ------------------begin ESP8266'centric----------------------------------
+WiFi.forceSleepBegin();                  // turn off ESP8266 RF
+delay(1);                                // give RF section time to shutdown
+system_update_cpu_freq(FREQUENCY);
+// ------------------end ESP8266'centric------------------------------------
+
+
+
+        pinMode(FSK_OUT,  OUTPUT);
+        pinMode(AFSK_OUT, OUTPUT);
+        Serial.begin(115200);
+        
+
+}
+
+
+void loop()
+
+{
+
+yield();    
+
+while (true)
+
+{
+
+  
+char*   mensaje;
+
+
+mensaje = "0123456789..... RTTY BAUDOT +++++ ----- ***** ? ; : 5 BIT RTTY BAUDOT 5 BIT RTTY BAUDOT 5 BIT RTTY BAUDOT 5 BIT  KKKKKK   \0";
+rtty(mensaje);
+
+delay(10000);
+       
+//mensaje = "ESTO ES UN TEXTO ASCII EN 7 BITS 50 bauds ESTO ES UN TEXTO ASCII EN 7 BITS 50 bauds 1111111 \0";
+//sendAscii(mensaje);
+
+//delay(20000);
+
+//mensaje = "ESTO ES otro TEXTO ASCII EN 7 BITS 50 bauds ESTO ES otro TEXTO ASCII EN 7 BITS 50 bauds 222222 \0";
+//sendAscii(mensaje);
+
+
+
+    
+}
+
+    
+        
+}
+    
+
+void sendAscii(char * string) {
+  
+char    c;
+    
+c = *string++;
+
+while ( c != '\0')
+ {
+
+Serial.print(c);
+
+// Start SPACE bit
+                analogWriteFreq(SPACE);
+                analogWrite(AFSK_OUT, DUTY);
+                delayMicroseconds(abaud);
+                delayMicroseconds(abaud);
+
+                charbit(c);
+                
+// Stop MARK bits 2 
+
+                analogWriteFreq(MARK);
+                analogWrite(AFSK_OUT, DUTY);
+                delayMicroseconds(abaud);
+                delayMicroseconds(abaud);  
+                delayMicroseconds(abaud);
+                delayMicroseconds(abaud); 
+                yield();         
+                
+c = *string++;
+  }
+
+                if ( c == '\0') {
+                c = char(13);
+                charbit(c);
+                Serial.println("");
+                analogWrite(AFSK_OUT, 1023); 
+                }
+
+ 
+}
+
+void charbit(char c)
+{
+
+byte    i;
+   
+for (i=0;i<7;i++) // Change this here 7 or 8 for ASCII-7 / ASCII-8
+    {
+   if (c & 1) {
+   
+                  analogWriteFreq(MARK);
+                  analogWrite(AFSK_OUT, DUTY);
+                  delayMicroseconds(abaud);
+                  delayMicroseconds(abaud);   }
+                  
+  else {
+  
+                  analogWriteFreq(SPACE);
+                  analogWrite(AFSK_OUT, DUTY);
+                  delayMicroseconds(abaud);
+                  delayMicroseconds(abaud);   }
+  
+  
+  c = c >> 1;
+   
+    }
+}
+
+void sendFsk(boolean d1 , boolean d2 , boolean d3 ,boolean d4 ,boolean d5)
+{
+        //--start bit
+                analogWriteFreq(SPACE);
+                analogWrite(AFSK_OUT, DUTY);
+                delay(baud);
+          baudot(d1);
+          baudot(d2);
+          baudot(d3);
+          baudot(d4);
+          baudot(d5);
+        //--stop bit
+                analogWriteFreq(MARK);
+                analogWrite(AFSK_OUT, DUTY);
+        delay(baud*1.5);
+        yield();
+}
+
+
+void baudot(boolean bits)
+{
+if(bits == 1){
+                analogWriteFreq(MARK);
+                analogWrite(AFSK_OUT, DUTY);
+        }
+        else{
+                analogWriteFreq(SPACE);
+                analogWrite(AFSK_OUT, DUTY);
+        }
+        delay(baud);
+
+}
+
+
+
+void rtty(char* string) 
+{
+  
+boolean d1;
+boolean d2;
+boolean d3;
+boolean d4;
+boolean d5;
+boolean fig1;
+int     fig2;
+boolean space;
+byte    j;
+boolean sSq;
+byte    idC;
+char    ch ;
+
+ ch = *string++;
+  
+  while ( ch != '\0')
+      {
+        
+        fig2 = -1;
+        if(ch == ' ')
+        {
+                d1 = 0; d2 = 0; d3 = 1; d4 = 0; d5 = 0;
+                space = 1;
+        }
+        else if(ch == 'A'){d1 = 1; d2 = 1; d3 = 0; d4 = 0; d5 = 0; fig2 = 0;}
+        else if(ch == 'B'){d1 = 1; d2 = 0; d3 = 0; d4 = 1; d5 = 1; fig2 = 0;}
+        else if(ch == 'C'){d1 = 0; d2 = 1; d3 = 1; d4 = 1; d5 = 0; fig2 = 0;}
+        else if(ch == 'D'){d1 = 1; d2 = 0; d3 = 0; d4 = 1; d5 = 0; fig2 = 0;}
+        else if(ch == 'E'){d1 = 1; d2 = 0; d3 = 0; d4 = 0; d5 = 0; fig2 = 0;}
+        else if(ch == 'F'){d1 = 1; d2 = 0; d3 = 1; d4 = 1; d5 = 0; fig2 = 0;}
+        else if(ch == 'G'){d1 = 0; d2 = 1; d3 = 0; d4 = 1; d5 = 1; fig2 = 0;}
+        else if(ch == 'H'){d1 = 0; d2 = 0; d3 = 1; d4 = 0; d5 = 1; fig2 = 0;}
+        else if(ch == 'I'){d1 = 0; d2 = 1; d3 = 1; d4 = 0; d5 = 0; fig2 = 0;}
+        else if(ch == 'J'){d1 = 1; d2 = 1; d3 = 0; d4 = 1; d5 = 0; fig2 = 0;}
+        else if(ch == 'K'){d1 = 1; d2 = 1; d3 = 1; d4 = 1; d5 = 0; fig2 = 0;}
+        else if(ch == 'L'){d1 = 0; d2 = 1; d3 = 0; d4 = 0; d5 = 1; fig2 = 0;}
+        else if(ch == 'M'){d1 = 0; d2 = 0; d3 = 1; d4 = 1; d5 = 1; fig2 = 0;}
+        else if(ch == 'N'){d1 = 0; d2 = 0; d3 = 1; d4 = 1; d5 = 0; fig2 = 0;}
+        else if(ch == 'O'){d1 = 0; d2 = 0; d3 = 0; d4 = 1; d5 = 1; fig2 = 0;}
+        else if(ch == 'P'){d1 = 0; d2 = 1; d3 = 1; d4 = 0; d5 = 1; fig2 = 0;}
+        else if(ch == 'Q'){d1 = 1; d2 = 1; d3 = 1; d4 = 0; d5 = 1; fig2 = 0;}
+        else if(ch == 'R'){d1 = 0; d2 = 1; d3 = 0; d4 = 1; d5 = 0; fig2 = 0;}
+        else if(ch == 'S'){d1 = 1; d2 = 0; d3 = 1; d4 = 0; d5 = 0; fig2 = 0;}
+        else if(ch == 'T'){d1 = 0; d2 = 0; d3 = 0; d4 = 0; d5 = 1; fig2 = 0;}
+        else if(ch == 'U'){d1 = 1; d2 = 1; d3 = 1; d4 = 0; d5 = 0; fig2 = 0;}
+        else if(ch == 'V'){d1 = 0; d2 = 1; d3 = 1; d4 = 1; d5 = 1; fig2 = 0;}
+        else if(ch == 'W'){d1 = 1; d2 = 1; d3 = 0; d4 = 0; d5 = 1; fig2 = 0;}
+        else if(ch == 'X'){d1 = 1; d2 = 0; d3 = 1; d4 = 1; d5 = 1; fig2 = 0;}
+        else if(ch == 'Y'){d1 = 1; d2 = 0; d3 = 1; d4 = 0; d5 = 1; fig2 = 0;}
+        else if(ch == 'Z'){d1 = 1; d2 = 0; d3 = 0; d4 = 0; d5 = 1; fig2 = 0;}
+        else if(ch == '0'){d1 = 0; d2 = 1; d3 = 1; d4 = 0; d5 = 1; fig2 = 1;}
+        else if(ch == '1'){d1 = 1; d2 = 1; d3 = 1; d4 = 0; d5 = 1; fig2 = 1;}
+        else if(ch == '2'){d1 = 1; d2 = 1; d3 = 0; d4 = 0; d5 = 1; fig2 = 1;}
+        else if(ch == '3'){d1 = 1; d2 = 0; d3 = 0; d4 = 0; d5 = 0; fig2 = 1;}
+        else if(ch == '4'){d1 = 0; d2 = 1; d3 = 0; d4 = 1; d5 = 0; fig2 = 1;}
+        else if(ch == '5'){d1 = 0; d2 = 0; d3 = 0; d4 = 0; d5 = 1; fig2 = 1;}
+        else if(ch == '6'){d1 = 1; d2 = 0; d3 = 1; d4 = 0; d5 = 1; fig2 = 1;}
+        else if(ch == '7'){d1 = 1; d2 = 1; d3 = 1; d4 = 0; d5 = 0; fig2 = 1;}
+        else if(ch == '8'){d1 = 0; d2 = 1; d3 = 1; d4 = 0; d5 = 0; fig2 = 1;}
+        else if(ch == '9'){d1 = 0; d2 = 0; d3 = 0; d4 = 1; d5 = 1; fig2 = 1;}
+        else if(ch == '-'){d1 = 1; d2 = 1; d3 = 0; d4 = 0; d5 = 0; fig2 = 1;}
+        else if(ch == '?'){d1 = 1; d2 = 0; d3 = 0; d4 = 1; d5 = 1; fig2 = 1;}
+        else if(ch == ':'){d1 = 0; d2 = 1; d3 = 1; d4 = 1; d5 = 0; fig2 = 1;}
+        else if(ch == '('){d1 = 1; d2 = 1; d3 = 1; d4 = 1; d5 = 0; fig2 = 1;}
+        else if(ch == ')'){d1 = 0; d2 = 1; d3 = 0; d4 = 0; d5 = 1; fig2 = 1;}
+        else if(ch == '.'){d1 = 0; d2 = 0; d3 = 1; d4 = 1; d5 = 1; fig2 = 1;}
+        else if(ch == ','){d1 = 0; d2 = 0; d3 = 1; d4 = 1; d5 = 0; fig2 = 1;}
+        else if(ch == '/'){d1 = 1; d2 = 0; d3 = 1; d4 = 1; d5 = 1; fig2 = 1;}
+        else if(ch == '+'){d1 = 1; d2 = 0; d3 = 0; d4 = 0; d5 = 1; fig2 = 1;} //ITA2
+        else
+        {
+                ch = ' ';
+                d1 = 0; d2 = 0; d3 = 1; d4 = 0; d5 = 0;
+                space = 1;
+        }
+////////////////////
+        
+          
+          if(fig1 == 0 && fig2 == 1)
+          {
+                  d1 = 1; d2 = 1; d3 = 0; d4 = 1; d5 = 1; //FIGURES
+                  
+          }
+          else if(fig1 == 1 && fig2 == 0)
+          {
+                  d1 = 1; d2 = 1; d3 = 1; d4 = 1; d5 = 1; //LETTERS
+                  
+          }
+          else if(space == 1 && fig2 == 1)
+          {
+                  d1 = 1; d2 = 1; d3 = 0; d4 = 1; d5 = 1; //FIGURES 
+                  
+          }
+          else
+          {
+          Serial.print (ch);  
+          ch = *string++;       
+                  
+          }
+          if(fig2 == 0 || fig2 == 1)
+          {
+                  space = 0;
+                  fig1 = fig2;
+          }
+          
+           
+             
+          sendFsk(d1,d2,d3,d4,d5);
+          
+          
+  }
+  if(ch == '\0')
+  {
+          d1 = 0; d2 = 0; d3 = 0; d4 = 1; d5 = 0; //CR
+          sendFsk(d1,d2,d3,d4,d5);
+          d1 = 0; d2 = 1; d3 = 0; d4 = 0; d5 = 0; //LF
+          sendFsk(d1,d2,d3,d4,d5);
+          sSq = 0;
+          j = 0;
+          idC = 0;
+          
+          Serial.println("");
+
+          analogWrite(AFSK_OUT,1023);
+
+                        
+
+  }
+
+  
+
+ }
+
+
+
+
+
+
