@@ -1,0 +1,312 @@
+
+// ------------------begin ESP8266'centric----------------------------------
+#define FREQUENCY    160                  // valid 80, 160
+//
+#include "ESP8266WiFi.h"
+extern "C" {
+#include "user_interface.h"
+}
+// ------------------end ESP8266'centric------------------------------------
+
+#define AFSK_OUT D6   //---- AFSK AUDIO OUTPUT en ESP8266 pin D6
+
+#define SHIFT     170
+#define MARK     2125
+#define SPACE    MARK - SHIFT
+#define DUTY     510
+
+/*      EU              USA
+170 Hz  2125 / 1955 Hz  2295 / 2125 Hz
+425 Hz  2125 / 1700 Hz  2295 / 1870 Hz
+850 Hz  2125 / 1275 Hz  2295 / 1445 Hz
+ 85 Hz  2125 / 2040 Hz  2295 / 2210 Hz
+255 Hz  2125 / 1870 Hz  2295 / 20        pinMode(AFSK_OUT, OUTPUT);40 Hz
+340 Hz  2125 / 1785 Hz  2295 / 1955 Hz
+680 Hz  2125 / 1445 Hz  2295 / 1615 Hz */
+
+/*Baud bit length  char length   char/sec  char/min  words/min
+45.5 Bd   22 ms     0.165 s   6     364    60
+  50 Bd   20 ms     0.15 s    6.67  400    66
+  75 Bd   13.33 ms  0.1 s     10    600   100
+ 100 Bd   10 ms     0.075 s   13.33 800   133 */
+ 
+int baudot_encode_table[0x60][2] = {
+    // index: ascii char; values: bits, ltrs_or_figs_or_neither_or_both
+
+  /* 0x00 */
+    /* NUL */  { 0x00, 3 },  // NUL
+    /* xxx */ { 0, 0 }, // non-encodable
+    /* xxx */ { 0, 0 }, // non-encodable
+    /* xxx */ { 0, 0 }, // non-encodable
+    /* xxx */ { 0, 0 }, // non-encodable
+    /* xxx */ { 0, 0 }, // non-encodable
+    /* xxx */ { 0, 0 }, // non-encodable
+    /* BEL */ { 0x05, 2 },  // BELL (or CCITT2 apostrophe)
+    /* BS */  { 0, 0 }, // non-encodable (FIXME???)
+    /* xxx */ { 0, 0 }, // non-encodable
+    /* LF */  { 0x02, 3 },  // LF
+    /* xxx */ { 0, 0 }, // non-encodable
+    /* xxx */ { 0, 0 }, // non-encodable
+    /* 0xD */ { 0x08, 3 },  // CR
+    /* xxx */ { 0, 0 }, // non-encodable
+    /* xxx */ { 0, 0 }, // non-encodable
+
+  /* 0x10 */
+    /* xxx */ { 0, 0 }, // non-encodable
+    /* xxx */ { 0, 0 }, // non-encodable
+    /* xxx */ { 0, 0 }, // non-encodable
+    /* xxx */ { 0, 0 }, // non-encodable
+    /* xxx */ { 0, 0 }, // non-encodable
+    /* xxx */ { 0, 0 }, // non-encodable
+    /* xxx */ { 0, 0 }, // non-encodable
+    /* xxx */ { 0, 0 }, // non-encodable
+    /* xxx */ { 0, 0 }, // non-encodable
+    /* xxx */ { 0, 0 }, // non-encodable
+    /* xxx */ { 0, 0 }, // non-encodable
+    /* xxx */ { 0, 0 }, // non-encodable
+    /* xxx */ { 0, 0 }, // non-encodable
+    /* xxx */ { 0, 0 }, // non-encodable
+    /* xxx */ { 0, 0 }, // non-encodable
+    /* xxx */ { 0, 0 }, // non-encodable
+
+  /* 0x20 */
+    /*   */ { 0x04, 3 },  // SPACE
+    /* ! */ { 0x0d, 2 },  //
+    /* " */ { 0x11, 2 },  //
+    /* # */ { 0x14, 2 },  // '#' (or CCITT2 British pounds symbol)
+    /* $ */ { 0x09, 2 },  // '$' (or CCITT2 ENQ)
+    /* % */ { 0, 0 }, // non-encodable
+    /* & */ { 0x1a, 2 },  //
+    /* ' */ { 0x0b, 2 },  // apostrophe (or CCITT2 BELL)
+    /* ( */ { 0x0f, 2 },  //
+    /* ) */ { 0x12, 2 },  //
+    /* * */ { 0, 0 }, // non-encodable
+    /* + */ { 0x12, 2 },  //
+    /* , */ { 0x0c, 2 },  //
+    /* - */ { 0x03, 2 },  //
+    /* . */ { 0x1c, 2 },  //
+    /* / */ { 0x1d, 2 },  //
+
+  /* 0x30 */
+    /* 0 */ { 0x16, 2 },  //
+    /* 1 */ { 0x17, 2 },  //
+    /* 2 */ { 0x13, 2 },  //
+    /* 3 */ { 0x01, 2 },  //
+    /* 4 */ { 0x0a, 2 },  //
+    /* 5 */ { 0x10, 2 },  //
+    /* 6 */ { 0x15, 2 },  //
+    /* 7 */ { 0x07, 2 },  //
+    /* 8 */ { 0x06, 2 },  //
+    /* 9 */ { 0x18, 2 },  //
+    /* : */ { 0x0e, 2 },  //
+    /* ; */ { 0x1e, 2 },  //
+    /* < */ { 0, 0 }, // non-encodable
+    /* = */ { 0, 0 }, // non-encodable
+    /* > */ { 0, 0 }, // non-encodable
+    /* ? */ { 0x19, 2 },  //
+
+  /* 0x40 */
+    /* @ */ { 0, 0 }, // non-encodable
+    /* A */ { 0x03, 1 },  //
+    /* B */ { 0x19, 1 },  //
+    /* C */ { 0x0e, 1 },  //
+    /* D */ { 0x09, 1 },  //
+    /* E */ { 0x01, 1 },  //
+    /* F */ { 0x0d, 1 },  //
+    /* G */ { 0x1a, 1 },  //
+    /* H */ { 0x14, 1 },  //
+    /* I */ { 0x06, 1 },  //
+    /* J */ { 0x0b, 1 },  //
+    /* K */ { 0x0f, 1 },  //
+    /* L */ { 0x12, 1 },  //
+    /* M */ { 0x1c, 1 },  //
+    /* N */ { 0x0c, 1 },  //
+    /* O */ { 0x18, 1 },  //
+
+  /* 0x50 */
+    /* P */ { 0x16, 1 },  //
+    /* Q */ { 0x17, 1 },  //
+    /* R */ { 0x0a, 1 },  //
+    /* S */ { 0x05, 1 },  //
+    /* T */ { 0x10, 1 },  //
+    /* U */ { 0x07, 1 },  //
+    /* V */ { 0x1e, 1 },  //
+    /* W */ { 0x13, 1 },  //
+    /* X */ { 0x1d, 1 },  //
+    /* Y */ { 0x15, 1 },  //
+    /* Z */ { 0x11, 1 },  //
+    /* [ */ { 0, 0 }, // non-encodable
+    /* \\ */  { 0, 0 }, // non-encodable
+    /* ] */ { 0, 0 }, // non-encodable
+    /* ^ */ { 0, 0 }, // non-encodable
+    /* _ */ { 0, 0 }, // non-encodable
+
+}; 
+
+void setup()
+{  
+  /* Initializations */
+// ------------------begin ESP8266'centric----------------------------------
+WiFi.forceSleepBegin();                  // turn off ESP8266 RF
+delay(1);                                // give RF section time to shutdown
+system_update_cpu_freq(FREQUENCY);
+// ------------------end ESP8266'centric------------------------------------
+
+        pinMode(AFSK_OUT, OUTPUT);
+        Serial.begin(115200);
+}
+
+
+void loop()
+
+{
+while (true)
+
+  {
+    
+char*   mensaje;
+
+// minimodem -M 2125 -S 1955 rtty
+mensaje = "RYRYRY 0123456789 ABCDEFGHIJKLMNOPQRSTUVWXYZ\0";
+rtty(mensaje);
+
+delay(10000);
+
+// minimodem -M 2125 -S 1955 --ascii 50 -7 --stopbits=2.0      
+mensaje = "ESTO ES UN TEXTO ASCII EN 7 BITS 50 bauds ESTO ES UN TEXTO ASCII EN 7 BITS 50 bauds 1111111 \0";
+sendAscii(mensaje);
+
+delay(20000);
+
+//mensaje = "ESTO ES otro TEXTO ASCII EN 7 BITS 50 bauds ESTO ES otro TEXTO ASCII EN 7 BITS 50 bauds 222222 \0";
+//sendAscii(mensaje);
+    
+  }
+       
+}
+void sendAscii(char * string) {
+  
+int baud = 20150 ; // 50 baud
+// baud = 3370 ; // 300 baud 
+ 
+char    c;
+byte    i;
+    
+c = *string++;
+
+while ( c != '\0')
+ {
+
+Serial.print(c);
+
+space(baud);
+  leebits(7,c,baud);
+mark(baud*2);       
+                
+c = *string++;
+  }
+
+                if ( c == '\0') {
+                c = char(13);
+                  leebits(7,c,baud);
+                Serial.println("");
+                analogWrite(AFSK_OUT, 1023); 
+                }
+
+}
+
+void Send_RTTY(byte c)
+{
+int baud = 22000;   // 22000ms = 45.5 bd -- 20000ms = 50 bd 
+float pausa = 1.5; // bits de parada
+        
+        space(baud);//--start bit
+leebits(5,c,baud);
+        mark(baud*pausa);//--stop bit
+      
+}
+
+void rtty(char* string) 
+{
+boolean fig1;
+int     fig2;
+boolean space;
+byte    c;
+char    ch ;
+
+ ch = *string++;
+ 
+ while ( ch != '\0')
+      {  
+        c = int(baudot_encode_table[ch][0]);
+        fig2 = int(baudot_encode_table[ch][1])-1;
+        
+          if ( c == 4 || c == 0 )  { space = 1; }
+          
+          if(fig1 == 0 && fig2 == 1)
+          {
+                  c = 27; //FIGURES
+                  
+          }
+          else if(fig1 == 1 && fig2 == 0)
+          {
+                  c = 31; //LETTERS
+                  
+          }
+          else if(space == 1 && fig2 == 1)
+          {
+                  c = 27; //FIGURES 
+                  
+          }
+          else
+          {
+          Serial.print (ch);
+            
+          ch = *string++;       
+                  
+          }
+          if(fig2 == 0 || fig2 == 1)
+          {
+                  space = 0;
+                  fig1 = fig2;
+          }
+
+          Send_RTTY(c);
+          
+  }
+  if(ch == '\0') {   
+          c = 8; //CR
+          Send_RTTY(c);
+          c = 2; //LF
+          Send_RTTY(c);     
+          Serial.println("");
+          analogWrite(AFSK_OUT,1023);
+          }
+ }
+
+
+void mark(int time) {
+    analogWriteFreq(MARK);
+    analogWrite(AFSK_OUT, DUTY);
+    delayMicroseconds(time/2);
+    delayMicroseconds(time/2);
+    yield();
+
+}
+void space(int time) {
+    analogWriteFreq(SPACE);
+    analogWrite(AFSK_OUT, DUTY);
+    delayMicroseconds(time/2);
+    delayMicroseconds(time/2);
+    yield();
+}
+
+void leebits(int bits, byte c, float baud) {
+  for (int i=0;i<bits;i++) // Change this here 7 or 8 for ASCII-7 / ASCII-8
+    {
+   if (c & 1) { mark(baud);  }
+   else       { space(baud); }
+   c = c >> 1;
+   
+    }
+}
