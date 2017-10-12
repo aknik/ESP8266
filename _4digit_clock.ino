@@ -35,8 +35,8 @@ int numCounter = 0;
 int minutos = 0;
 int hora = 0;
 int TimeZone = 2;
-const char *ssid     = "WLAN_0CDD";
-const char *password = ".999999999.";
+const char *ssid     = "WLAN_WIFI";
+const char *password = "999999999";
 
 TM1637Display display(CLK, DIO); //set up the 4-Digit Display.
 
