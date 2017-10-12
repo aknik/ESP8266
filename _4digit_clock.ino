@@ -35,22 +35,20 @@ int numCounter = 0;
 int minutos = 0;
 int hora = 0;
 int TimeZone = 2;
-const char *ssid     = "WLAN_WIFI";
-const char *password = "999999999";
+const char *ssid     = "WLAN_XXXX";
+const char *password = ".999999999.";
 
 TM1637Display display(CLK, DIO); //set up the 4-Digit Display.
 
 WiFiUDP ntpUDP;
-NTPClient timeClient(ntpUDP, "hora.roa.es", TimeZone * 3600, 60000);
+NTPClient timeClient(ntpUDP, "hora.roa.es", TimeZone * 3600, 600000);
 
 void setup(){
-
-  display.setBrightness(0x0a); //set the diplay to maximum brightness 0x0a
   
   Serial.begin(115200);
   Serial.println("");
   WiFi.disconnect();
-  delay(1000);        //necessary ???
+  delay(500);        //necessary ???
   Serial.print("Connecting to ");
   Serial.println(ssid);
   WiFi.begin(ssid, password);
@@ -59,14 +57,16 @@ void setup(){
     delay ( 500 );
     Serial.print ( "." );
   }
-
+  
+  display.setBrightness(0x0a); //set the diplay to maximum brightness 0x0a
   timeClient.begin();
 }
 
 
 void loop() {
   
-
+timeClient.update();
+Serial.println(timeClient.getFormattedTime());
   
 hora = timeClient.getHours();
 minutos = timeClient.getMinutes();
@@ -84,19 +84,14 @@ unsigned long currentMillis = millis();
 
     // if the LED is off turn it on and vice-versa:
     if (ledState == LOW) {
-      ledState = HIGH;
-       data[1] = data[1] | B10000000 ; 
-       display.setSegments(data); 
+      ledState = HIGH;  
     } else {
       ledState = LOW;
-      display.setSegments(data);
-      timeClient.update();
-      Serial.println(timeClient.getFormattedTime());
-    }
-
- }   
-
- 
+           }
+                                                   }
+    
+  if (ledState == HIGH) { data[1] = data[1] | B10000000 ; }
+  display.setSegments(data);  
   yield();
 
 }
