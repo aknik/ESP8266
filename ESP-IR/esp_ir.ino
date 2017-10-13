@@ -60,7 +60,7 @@ decode_results results;
 //******************************************************************************************
 // Forward declaration of methods                                                          *
 //******************************************************************************************
-char* dbgprint( const char* format, ... ) ;
+char* dbgprint( const char* forTZmat, ... ) ;
 
 
 //******************************************************************************************
@@ -513,6 +513,16 @@ void ponNTP()
 {
   //get a random server from the pool
   WiFi.hostByName(ntpServerName, timeServerIP); 
+
+IPAddress timeServerIP(192,168,2,1);
+Serial.println(timeServerIP);
+
+  Serial.println("Starting UDP");
+  udp.begin(localPort);
+  Serial.print("Local port: ");
+  Serial.println(udp.localPort());
+
+  
 
   sendNTPpacket(timeServerIP); // send an NTP packet to a time server
   // wait to see if a reply is available
