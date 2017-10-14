@@ -40,9 +40,6 @@ int numCounter = 0;
 int minutos = 0;
 int hora = 0;
 int TimeZone = 2;
-const char *ssid     = "WLAN_XX";
-const char *password = ".999999999.";
-int TZ = +2; 
 
 WiFiServer server(80);
 
@@ -50,31 +47,20 @@ TM1637Display display(CLK, DIO); //set up the 4-Digit Display.
 
 
  
- 
 void setup () {
 
   display.setBrightness(0x0a); //set the diplay to maximum brightness 0x0a
   
   Serial.begin(115200);
+  WifiCon();
   
-  WiFi.mode(WIFI_STA); 
-  WiFi.begin(ssid, password); 
-  while (WiFi.status() != WL_CONNECTED)
-  {
-     delay(100);
-  }
-  Serial.print("\n\nConexión Wifi.\nIP address: ");
-  Serial.println(WiFi.localIP());
-  server.begin();
-
-GetTime(TZ);
-
 }
 
 void loop () {
 
-if (minute() == 0) { GetTime(TZ); }
-printhora();
+if (minute() == 0 && second() < 6 ) { WifiCon(); }
+//Serial.println(minute()%10);
+//printhora();
 LCDprint();
 // delay(500);
 
@@ -172,7 +158,7 @@ tIMemo = GetMonthIndex(mes);
 
 setTime(tIMeh,tIMem,tIMes,tIMed,tIMemo,tIMey); 
 time_t t = now();
-setTime(t + TZ*3600 + 1);
+setTime(t + TimeZone*3600 + 1);
 
 }
 
@@ -205,3 +191,44 @@ unsigned long currentMillis = millis();
   yield();
 
 }
+
+void WifiCon() {
+
+const char *ssid     = "WLAN_XXXX";
+const char *password = ".999999999."; 
+
+IPAddress ip( 192, 168, 2, 88 );
+IPAddress gateway( 192, 168, 2, 1 );
+IPAddress subnet( 255, 255, 255, 0 );
+
+  WiFi.forceSleepWake();
+  delay( 1 );
+  // Disable the WiFi persistence.  The ESP8266 will not load and save WiFi settings in the flash memory.
+  WiFi.persistent( false );
+  WiFi.mode( WIFI_STA );
+  WiFi.config( ip, gateway, subnet );
+  WiFi.begin(ssid, password); 
+  while (WiFi.status() != WL_CONNECTED)
+  {
+     delay(100);
+  }
+
+  Serial.print("\n\nConexión Wifi.\nIP address: ");
+  Serial.println(WiFi.localIP()); 
+  
+  GetTime(TimeZone);
+  printhora();
+  
+WiFi.disconnect( true );
+WiFi.mode( WIFI_OFF );
+WiFi.forceSleepBegin();
+delay( 1 );
+
+// WAKE_RF_DISABLED to keep the WiFi radio disabled when we wake up
+// ESP.deepSleep( SLEEPTIME, WAKE_RF_DISABLED );
+
+  }
+
+
+
+
