@@ -2,12 +2,28 @@
 #include <ESP8266WiFi.h>
 #include <WiFiUdp.h>
 #include <Time.h>
+#include <Timezone.h>
 
 extern "C"
 {
 #include "user_interface.h"
 }
 
+//Central European Time (Frankfurt, Paris)
+TimeChangeRule CEST = {"CEST", Last, Sun, Mar, 2, 120};     //Central European Summer Time
+TimeChangeRule CET = {"CET", Last, Sun, Oct, 3, 60};       //Central European Standard Time
+Timezone CE(CEST, CET);
+
+//Australia Eastern Time Zone (Sydney, Melbourne)
+TimeChangeRule aEDT = {"AEDT", First, Sun, Oct, 2, 660};    //UTC + 11 hours
+TimeChangeRule aEST = {"AEST", First, Sun, Apr, 3, 600};    //UTC + 10 hours
+Timezone ausET(aEDT, aEST);
+
+//US Eastern Time Zone (New York, Detroit)
+TimeChangeRule usEDT = {"EDT", Second, Sun, Mar, 2, -240};  //Eastern Daylight Time = UTC - 4 hours
+TimeChangeRule usEST = {"EST", First, Sun, Nov, 2, -300};   //Eastern Standard Time = UTC - 5 hours
+Timezone usET(usEDT, usEST);
+ 
 const int CLK = D6; //Set the CLK pin connection to the display
 const int DIO = D5; //Set the DIO pin connection to the display
 
@@ -39,7 +55,6 @@ const long interval = 1000;
 int numCounter = 0;
 int minutos = 0;
 int hora = 0;
-int TimeZone = 2;
 
 WiFiServer server(80);
 
@@ -90,14 +105,14 @@ int month = (strstr(month_names, buff)-month_names)/3+1;
 return month;
 }
 
-void GetTime(int TZ)
+void GetTime()
 {
 String TiMeS,TMnow,MyNtP;                                 // The current TimeStamp from Google....
 int tIMeh,tIMem,tIMes,newt,newt1,inChar; 
 int tIMed,tIMemo,tIMey;                                                // Integer values from Gooogle time reply
 String DsTable;                                           // Discarded parts if the Strings......
 String theDate,theDate1,theDateTr;              // The current TimeStamp Date from Google....
-char mes[3];
+char mes[4];
 
 WiFiClient client;
 while (!!!client.connect("google.com", 80)) {
@@ -110,6 +125,7 @@ while(!!!client.available()) {
 while(client.available()){
 client.readStringUntil('\n');
  theDate1 = client.readStringUntil('\r'); //Date: Tue, 10 Nov 2015 19:55:38 GMT
+
   if (theDate1.startsWith("Date:")) {
     TiMeS=theDate1;
     theDate = theDate1.substring(6,23);
@@ -118,30 +134,42 @@ client.readStringUntil('\n');
         }
 }
 
+Serial.println(TiMeS);
+// Date: Mon, 16 Oct 2017 10:32:34 GMT
+
+
+ 
 inChar = TiMeS.charAt(30);
-newt=inChar-48;             // Convert Numerical Char to int.....
+newt=inChar-48;             
 inChar = TiMeS.charAt(29);
 newt1=inChar-48;
-tIMes=(newt1*10)+newt;
+tIMes=(newt1*10)+newt;      // SEGUNDOS
 
 inChar = TiMeS.charAt(27);
 newt=inChar-48;
 inChar = TiMeS.charAt(26);
 newt1=inChar-48;
-tIMem=(newt1*10)+newt;
+tIMem=(newt1*10)+newt;      // MINUTOS
 
 inChar = TiMeS.charAt(24);
 newt=inChar-48;
 inChar = TiMeS.charAt(23);
 newt1=inChar-48;
-tIMeh=(newt1*10)+newt;
+tIMeh=(newt1*10)+newt;      //  HORAS
+
+
+
+// Date: Mon, 16 Oct 2017 10:32:34 GMT
+// Serial.println(TiMeS.substring(23,31));
+
 
 inChar = TiMeS.charAt(12);
-newt=inChar-48;             // Convert Numerical Char to int.....
+newt=inChar-48;             
 inChar = TiMeS.charAt(11);
 newt1=inChar-48;
-tIMed=(newt1*10)+newt;
+tIMed=(newt1*10)+newt;      //  DIA MES
 
+Serial.println(tIMed);
 
 inChar = TiMeS.charAt(21);
 newt=inChar-48;             // Convert Numerical Char to int.....
@@ -152,13 +180,28 @@ tIMey=2000+((newt1*10)+newt);
 mes[0] = TiMeS.charAt(14);
 mes[1] = TiMeS.charAt(15);
 mes[2] = TiMeS.charAt(16);
+mes[3] = 0;  //  included the null character (written '\0') ourselves. 
 
-
+Serial.println(mes);
 tIMemo = GetMonthIndex(mes);
+Serial.println(tIMemo);
 
+// setTime(hr,min,sec,day,month,yr);
 setTime(tIMeh,tIMem,tIMes,tIMed,tIMemo,tIMey); 
-time_t t = now();
-setTime(t + TimeZone*3600 + 1);
+
+    unsigned long epoch = now();
+    
+    TimeChangeRule *tcr;
+    time_t utc;
+    utc = epoch;
+    
+    setTime(CE.toLocal(utc, &tcr));
+
+    printTime(utc, "UTC", "Universal Coordinated Time");
+    printTime(CE.toLocal(utc, &tcr), tcr -> abbrev, "Madrid");
+    printTime(usET.toLocal(utc, &tcr), tcr -> abbrev, "New York");
+    printTime(ausET.toLocal(utc, &tcr), tcr -> abbrev, "Sydney");
+    Serial.println("");
 
 }
 
@@ -192,9 +235,50 @@ unsigned long currentMillis = millis();
 
 }
 
+
+//Function to print time with time zone
+void printTime(time_t t, char *tz, char *loc)
+{
+  sPrintI00(hour(t));
+  sPrintDigits(minute(t));
+  sPrintDigits(second(t));
+  Serial.print(' ');
+  Serial.print(dayShortStr(weekday(t)));
+  Serial.print(' ');
+  sPrintI00(day(t));
+  Serial.print(' ');
+  Serial.print(monthShortStr(month(t)));
+  Serial.print(' ');
+  Serial.print(year(t));
+  Serial.print(' ');
+  Serial.print(tz);
+  Serial.print(' ');
+  Serial.print(loc);
+  Serial.println();
+}
+
+//Print an integer in "00" format (with leading zero).
+//Input value assumed to be between 0 and 99.
+void sPrintI00(int val)
+{
+  if (val < 10) Serial.print('0');
+  Serial.print(val, DEC);
+  return;
+}
+
+//Print an integer in ":00" format (with leading zero).
+//Input value assumed to be between 0 and 99.
+void sPrintDigits(int val)
+{
+  Serial.print(':');
+  if (val < 10) Serial.print('0');
+  Serial.print(val, DEC);
+}
+
+
 void WifiCon() {
 
-const char *ssid     = "WLAN_XXXX";
+const char *ssid     = "WLAN_0XXX";
 const char *password = ".999999999."; 
 
 IPAddress ip( 192, 168, 2, 88 );
@@ -216,7 +300,7 @@ IPAddress subnet( 255, 255, 255, 0 );
   Serial.print("\n\nConexión Wifi.\nIP address: ");
   Serial.println(WiFi.localIP()); 
   
-  GetTime(TimeZone);
+  GetTime();
   printhora();
   
 WiFi.disconnect( true );
