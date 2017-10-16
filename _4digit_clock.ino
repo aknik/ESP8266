@@ -2,11 +2,27 @@
 #include <ESP8266WiFi.h>
 #include <WiFiUdp.h>
 #include <Time.h>
+#include <Timezone.h>
 
 extern "C"
 {
 #include "user_interface.h"
 }
+
+//Central European Time (Frankfurt, Paris)
+TimeChangeRule CEST = {"CEST", Last, Sun, Mar, 2, 120};     //Central European Summer Time
+TimeChangeRule CET = {"CET", Last, Sun, Oct, 3, 60};       //Central European Standard Time
+Timezone CE(CEST, CET);
+
+//Australia Eastern Time Zone (Sydney, Melbourne)
+TimeChangeRule aEDT = {"AEDT", First, Sun, Oct, 2, 660};    //UTC + 11 hours
+TimeChangeRule aEST = {"AEST", First, Sun, Apr, 3, 600};    //UTC + 10 hours
+Timezone ausET(aEDT, aEST);
+
+//US Eastern Time Zone (New York, Detroit)
+TimeChangeRule usEDT = {"EDT", Second, Sun, Mar, 2, -240};  //Eastern Daylight Time = UTC - 4 hours
+TimeChangeRule usEST = {"EST", First, Sun, Nov, 2, -300};   //Eastern Standard Time = UTC - 5 hours
+Timezone usET(usEDT, usEST);
  
 const int CLK = D6; //Set the CLK pin connection to the display
 const int DIO = D5; //Set the DIO pin connection to the display
@@ -39,7 +55,6 @@ const long interval = 1000;
 int numCounter = 0;
 int minutos = 0;
 int hora = 0;
-int TimeZone = 2;
 
 TM1637Display display(CLK, DIO); //set up the 4-Digit Display.
 
@@ -176,31 +191,72 @@ while (!cb) {
     // print Unix time:
     Serial.println(epoch);
     
-time_t t = epoch;
-setTime(t + TimeZone*3600 );
+    TimeChangeRule *tcr;
+    time_t utc;
+    utc = epoch;
+    
+    setTime(CE.toLocal(utc, &tcr));
 
-    // print the hour, minute and second:
-    Serial.print("The UTC time is ");       // UTC is the time at Greenwich Meridian (GMT)
-    Serial.print((epoch  % 86400L) / 3600); // print the hour (86400 equals secs per day)
-    Serial.print(':');
-    if ( ((epoch % 3600) / 60) < 10 ) {
-      // In the first 10 minutes of each hour, we'll want a leading '0'
-      Serial.print('0');
-    }
-    Serial.print((epoch  % 3600) / 60); // print the minute (3600 equals secs per minute)
-    Serial.print(':');
-    if ( (epoch % 60) < 10 ) {
-      // In the first 10 seconds of each minute, we'll want a leading '0'
-      Serial.print('0');
-    }
-    Serial.println(epoch % 60); // print the second
+    printTime(utc, "UTC", "Universal Coordinated Time");
+    printTime(CE.toLocal(utc, &tcr), tcr -> abbrev, "Madrid");
+    printTime(usET.toLocal(utc, &tcr), tcr -> abbrev, "New York");
+    printTime(ausET.toLocal(utc, &tcr), tcr -> abbrev, "Sydney");
+    Serial.println("");
 
 
 }
 
+//Function to print time with time zone
+void printTime(time_t t, char *tz, char *loc)
+{
+  sPrintI00(hour(t));
+  sPrintDigits(minute(t));
+  sPrintDigits(second(t));
+  Serial.print(' ');
+  Serial.print(dayShortStr(weekday(t)));
+  Serial.print(' ');
+  sPrintI00(day(t));
+  Serial.print(' ');
+  Serial.print(monthShortStr(month(t)));
+  Serial.print(' ');
+  Serial.print(year(t));
+  Serial.print(' ');
+  Serial.print(tz);
+  Serial.print(' ');
+  Serial.print(loc);
+  Serial.println();
+}
+
+//Print an integer in "00" format (with leading zero).
+//Input value assumed to be between 0 and 99.
+void sPrintI00(int val)
+{
+  if (val < 10) Serial.print('0');
+  Serial.print(val, DEC);
+  return;
+}
+
+//Print an integer in ":00" format (with leading zero).
+//Input value assumed to be between 0 and 99.
+void sPrintDigits(int val)
+{
+  Serial.print(':');
+  if (val < 10) Serial.print('0');
+  Serial.print(val, DEC);
+}
+
+
+
+
+
+
+
+
+
+
 void WifiCon() {
 
-const char *ssid     = "WLAN_XXXX";
+const char *ssid     = "WLAN_0XXX";
 const char *password = ".999999999."; 
 
 IPAddress ip( 192, 168, 2, 88 );
@@ -231,5 +287,19 @@ delay( 1 );
 
 // WAKE_RF_DISABLED to keep the WiFi radio disabled when we wake up
 // ESP.deepSleep( SLEEPTIME, WAKE_RF_DISABLED );
+//So, to confirm
 
+//after:
+//ESP.deepSleep(1000000, WAKE_RF_DISABLED),
+
+//The only way to get WiFi working is
+//ESP.deepSleep(1, WAKE_RF_DEFAULT)
+
+//Would doing this have the same affect (just as low current use on next boot):
+
+//WiFi.disconnect();
+//WiFi.mode(WIFI_OFF);
+//WiFi.forceSleepBegin();
+//delay(1);
+//ESP.deepSleep(1000000, WAKE_RF_DEFAULT);
   }
