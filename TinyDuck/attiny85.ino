@@ -13,13 +13,24 @@ SoftSerial mySerial(P_RX, P_TX);
 void setup(){
 
 mySerial.begin(9600);
-DigiKeyboard.sendKeyStroke(0);
+// initialize the digital pin as an output.
+
+
+  DigiKeyboard.sendKeyStroke(0);
+  delay(500);
+  DigiKeyboard.println("");
+  DigiKeyboard.println("clear");
+
 
 }
-
 void loop() {
   
-  if (mySerial.available() == 2) { 
+  if (mySerial.overflow()) {
+   DigiKeyboard.println("SoftwareSerial overflow!");
+}
+
+  
+  if (mySerial.available() >= 2 ) { 
     
     key = mySerial.read();
     mod = mySerial.read();
@@ -29,9 +40,12 @@ void loop() {
         DigiKeyboard.delay(mod);
         
       }
-      else 
-       
 
     DigiKeyboard.sendKeyStroke(key,mod);
 
   }
+
+  delay(0);
+  
+} //end of loop
+
