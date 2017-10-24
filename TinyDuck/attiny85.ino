@@ -4,23 +4,34 @@
 #define P_RX 2                        // Reception PIN (SoftSerial)
 #define P_TX 1                        // Transmition PIN (SoftSerial)
 
+uint8_t key ;
+uint8_t mod ;
+      
 SoftSerial mySerial(P_RX, P_TX); 
 
 
 void setup(){
 
 mySerial.begin(9600);
-DigiKeyboard.println("TEST");
+DigiKeyboard.sendKeyStroke(0);
 
 }
 
 void loop() {
-  char receivedLetter = '?'; // if empty show question mark
   
-  if (mySerial.available() > 0) { //Check if serial is avaliable, if this check is not done you will read 'ÿ'
-    receivedLetter = mySerial.read(); //read the char received. This function returns -1 if there is nothing to read.
-    // Serial.print("LETRA ");Serial.print(receivedLetter); Serial.println(" RECEBIDA"); // Write on serial monitor which letter was received. 
-    DigiKeyboard.println(receivedLetter);
+  if (mySerial.available() == 2) { 
+    
+    key = mySerial.read();
+    mod = mySerial.read();
+
+      if (key == 0) //delay (a delay>255 is split into a sequence of delays)
+      {
+        DigiKeyboard.delay(mod);
+        
+      }
+      else 
+       
+
+    DigiKeyboard.sendKeyStroke(key,mod);
+
   }
-  
-} //end of loop
