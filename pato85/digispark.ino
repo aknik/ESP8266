@@ -3,12 +3,7 @@
 
 #define P_RX 2                        // Reception PIN (SoftSerial)
 #define P_TX 1                        // Transmition PIN (SoftSerial)
-#define ExternSerial Serial1
 
-String bufferStr = "";
-String last = "";
-
-int defaultDelay = 0;
 uint8_t key ;
 uint8_t mod ;
       
@@ -23,8 +18,8 @@ ExternSerial.begin(9600);
 
   DigiKeyboard.sendKeyStroke(0);
   delay(500);
-  DigiKeyboard.println("");
-  DigiKeyboard.println("clear");
+  //DigiKeyboard.println("");
+  //DigiKeyboard.println("clear");
 
 
 }
@@ -33,13 +28,13 @@ ExternSerial.begin(9600);
 void loop() {
   
 
-  if (mySerial.overflow()) {
-   DigiKeyboard.println("SoftwareSerial overflow!");
+  if (ExternSerial.overflow()) {
+   DigiKeyboard.println("SoftwareSerial overflow!");}
 
-  if (mySerial.available() >= 2) { 
+  if (ExternSerial.available() >= 2) { 
     
-    key = mySerial.read();
-    mod = mySerial.read();
+    key = ExternSerial.read();
+    mod = ExternSerial.read();
 
       if (key == 0) //delay (a delay>255 is split into a sequence of delays)
       {
@@ -51,8 +46,12 @@ void loop() {
 
     DigiKeyboard.sendKeyStroke(key,mod);
 
-}
-///////
+
+
+                                    }
+} 
+
+
 
 
 
