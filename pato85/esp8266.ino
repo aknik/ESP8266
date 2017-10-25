@@ -3,17 +3,14 @@
 #define rxPin 14
 #define txPin 12
 
-/* Keyboard usage values, see usb.org's HID-usage-tables document, chapter
- * 10 Keyboard/Keypad Page for more codes.
- */
-#define MOD_CONTROL_LEFT    (1<<0)
-#define MOD_SHIFT_LEFT      (1<<1)
-#define MOD_ALT_LEFT        (1<<2)
-#define MOD_GUI_LEFT        (1<<3)
-#define MOD_CONTROL_RIGHT   (1<<4)
-#define MOD_SHIFT_RIGHT     (1<<5)
-#define MOD_ALT_RIGHT       (1<<6)
-#define MOD_GUI_RIGHT       (1<<7)
+#define MOD_CONTROL_LEFT    0x01
+#define MOD_SHIFT_LEFT      0x02
+#define MOD_ALT_LEFT        0x04
+#define MOD_GUI_LEFT        0x08
+#define MOD_CONTROL_RIGHT   0x10
+#define MOD_SHIFT_RIGHT     0x20
+#define MOD_ALT_RIGHT       0x40
+#define MOD_GUI_RIGHT       0x80
 
 #define KEY_NOKEY             0x00     // Reserved (no event indicated)
 #define KEY_ERR_ROLLOVER      0x01     // Keyboard ErrorRollOver
@@ -245,14 +242,17 @@
 
 SoftwareSerial mySerial(rxPin,txPin); // RX = rxPin, TX  = txPin
 
-#define DUCK_LEN 1998
 
-int i = 4; //how many times the payload should run (-1 for endless loop)
+int i = 1; //how many times the payload should run (-1 for endless loop)
 bool blink=true;
 
 uint8_t key ;
 uint8_t mod ;
 
+#define DUCK_LEN 118
+uint8_t duckraw [DUCK_LEN] = {
+  0x0, 0xff, 0x0, 0xff, 0x0, 0xff, 0x0, 0xff, 0x0, 0xff, 0x0, 0xff, 0x0, 0xff, 0x0, 0xff, 0x0, 0xff, 0x0, 0xff, 0x0, 0xff, 0x0, 0xc3, 0x3b, 0x4, 0x0, 0xff, 0x0, 0xf5, 0x1b, 0x0, 0x17, 0x0, 0x8, 0x0, 0x15, 0x0, 0x10, 0x0, 0x0, 0xff, 0x0, 0xf5, 0x28, 0x0, 0x0, 0xff, 0x0, 0xff, 0x0, 0xf0, 0x13, 0x0, 0x1a, 0x0, 0x7, 0x0, 0x0, 0xff, 0x0, 0xf5, 0x28, 0x0, 0x0, 0xff, 0x0, 0x2d, 0xc, 0x0, 0x7, 0x0, 0x0, 0xff, 0x0, 0x2d, 0x28, 0x0, 0x0, 0xff, 0x0, 0xf5, 0x6, 0x0, 0x4, 0x0, 0x17, 0x0, 0x2c, 0x0, 0x24, 0x2, 0x8, 0x0, 0x17, 0x0, 0x6, 0x0, 0x24, 0x2, 0x13, 0x0, 0x4, 0x0, 0x16, 0x0, 0x16, 0x0, 0x1a, 0x0, 0x7, 0x0, 0x0, 0xff, 0x0, 0xf5, 0x28, 0x0
+};
 
 String bufferStr = "DELAY 3000\rALT F2\rDELAY 500\rSTRING xterm\rDELAY 500\rENTER\rDELAY 750\rSTRING pwd\rDELAY 500\rENTER\rDELAY 300\rSTRING id\rDELAY 300\rENTER\rDELAY 500\rSTRING cat /etc/passwd\rDELAY 500\rENTER";
 
@@ -270,30 +270,57 @@ void setup() {
   pinMode(rxPin, INPUT);
   pinMode(txPin, OUTPUT);
   
+  delay(1000);
   Serial.println("\nSoftware serial test started");
-  
-delay(500);
-
+ 
 }
+
+void poop()
+{
+
+  //should code be runned in this loop?
+  if (i != 0) {
+    
+    //parse raw duckencoder script
+    for (int i=0; i<DUCK_LEN; i+=2)
+    {
+      key = duckraw[i];
+      mod = duckraw[i+1];
+      if (key == 0) //delay (a delay>255 is split into a sequence of delays)
+      {
+        delay(mod);
+      }
+      else DigiKeyboard(key);
+
+    }
+    i--;
+    Serial.println(".............................");
+  }
+    delay(3000); //wait 3000 milliseconds before next loop iteration
+    
+  
+}
+
 
 void loop(){
     
-          Serial.println(bufferStr);
+     //     Serial.println(bufferStr);
 
   
   if(bufferStr.length() > 0){
     
     bufferStr.replace("\r","\n");
     bufferStr.replace("\n\n","\n");
+    bufferStr.replace("\n ","\n");
     
     while(bufferStr.length() > 0){
       int latest_return = bufferStr.indexOf("\n");
       if(latest_return == -1){
-        Serial.println("run: "+bufferStr);
+         Serial.println("\nrun: "+bufferStr);
         Line(bufferStr);
         bufferStr = "";
       } else{
-        Serial.println("run: '"+bufferStr.substring(0, latest_return)+"'");
+         Serial.println("\nrun: '"+bufferStr.substring(0, latest_return)+"'");
         Line(bufferStr.substring(0, latest_return));
         last=bufferStr.substring(0, latest_return);
         bufferStr = bufferStr.substring(latest_return + 1);
@@ -301,25 +328,38 @@ void loop(){
     }
     
     bufferStr = "";
-    DigiKeyboard(0x99,0);
-    Serial.println("done");
+        
   }
 
 } // LOOP
 
-void DigiKeyboard(uint8_t key,uint8_t mod ){
+void DigiKeyboard(uint8_t key ){
+
+      if(key > 0 || mod > 0 ) {
+        
       
       mySerial.write(key);
       mySerial.write(mod); 
 
-      delay(60);
+      Serial.print(key,HEX);Serial.print(",");
+      Serial.print(mod,HEX);Serial.print(",");
+
+      delay(70);
+      mod = 0;
+
+      }
       
 } 
 
-void sendKeyStroke(uint8_t key){
+void DKeyboard(uint8_t key, uint8_t mod ){
       
-      DigiKeyboard(key,mod);
-      mod = 0;
+      mySerial.write(key);
+      mySerial.write(mod); 
+
+      Serial.print(key,HEX);Serial.print(",");
+      Serial.print(mod,HEX);Serial.print(",");
+
+      delay(70);
       
 } 
 
@@ -331,14 +371,28 @@ void sendKeyStroke(uint8_t key){
 
 void Line(String _line)
 {
-  int firstSpace = _line.indexOf(" ");
+  int firstSpace = _line.indexOf(" ",1);
+  //Serial.println(_line.substring(0,firstSpace));
   if(firstSpace == -1) Press(_line);
-  else if(_line.substring(0,firstSpace) == "STRING"){
-    for(int i=firstSpace+1;i<_line.length();i++) DigiKeyboard(_line[i],0);
+    else if(_line.substring(0,firstSpace) == "STRING"){
+    
+    for(int i=firstSpace+1;i<_line.length();i++) { mod = 0xff ; DigiKeyboard(_line[i]);  }
   }
   else if(_line.substring(0,firstSpace) == "DELAY"){
     int delaytime = _line.substring(firstSpace + 1).toInt();
-    delay(delaytime);
+    
+while (delaytime > 0) {
+                                               
+if (delaytime > 255) {
+        mod = 255; DigiKeyboard(0);
+        delaytime = delaytime - 255;
+} else {
+        mod = delaytime; DigiKeyboard(0);
+        delaytime = 0;
+}
+                      }
+    
+    mod = delaytime; DigiKeyboard(0);
   }
   else if(_line.substring(0,firstSpace) == "DEFAULTDE }LAY") defaultDelay = _line.substring(firstSpace + 1).toInt();
   else if(_line.substring(0,firstSpace) == "REM"){} //nothing :/
@@ -367,41 +421,42 @@ void Line(String _line)
   }
 
 
-
 void Press(String b){
-  if(b.length() == 1) sendKeyStroke(char(b[0]));
-  else if (b.equals("ENTER")) sendKeyStroke(KEY_ENTER);
+
+  //Serial.println(b);
+
+  if(b.length() == 1) DigiKeyboard(char(b[0]));
+  else if (b.equals("ENTER")) DigiKeyboard(KEY_ENTER);
   else if (b.equals("CTRL")) mod = (MOD_CONTROL_LEFT);
   else if (b.equals("SHIFT")) mod = (MOD_SHIFT_LEFT);
   else if (b.equals("ALT")) mod = (MOD_ALT_LEFT);
   else if (b.equals("GUI")) mod = (MOD_GUI_LEFT);
-  else if (b.equals("UP") || b.equals("UPARROW")) sendKeyStroke(KEY_ARROW_UP);
-  else if (b.equals("DOWN") || b.equals("DOWNARROW")) sendKeyStroke(KEY_ARROW_DOWN);
-  else if (b.equals("LEFT") || b.equals("LEFTARROW")) sendKeyStroke(KEY_ARROW_LEFT);
-  else if (b.equals("RIGHT") || b.equals("RIGHTARROW")) sendKeyStroke(KEY_ARROW_RIGHT);
-  else if (b.equals("DELETE")) sendKeyStroke(KEY_DELETE);
-  else if (b.equals("PAGEUP")) sendKeyStroke(KEY_PAGE_UP);
-  else if (b.equals("PAGEDOWN")) sendKeyStroke(KEY_PAGE_DOWN);
-  else if (b.equals("HOME")) sendKeyStroke(KEY_HOME);
-  else if (b.equals("ESC")) sendKeyStroke(KEY_ESCAPE);
-  else if (b.equals("BACKSPACE")) sendKeyStroke(KEY_DELETE);
-  else if (b.equals("INSERT")) sendKeyStroke(KEY_INSERT);
-  else if (b.equals("TAB")) sendKeyStroke(KEY_TAB);
-  else if (b.equals("END")) sendKeyStroke(KEY_END);
-  else if (b.equals("CAPSLOCK")) sendKeyStroke(KEY_CAPS_LOCK);
-  else if (b.equals("F1")) sendKeyStroke(KEY_F1);
-  else if (b.equals("F2")) sendKeyStroke(KEY_F2);
-  else if (b.equals("F3")) sendKeyStroke(KEY_F3);
-  else if (b.equals("F4")) sendKeyStroke(KEY_F4);
-  else if (b.equals("F5")) sendKeyStroke(KEY_F5);
-  else if (b.equals("F6")) sendKeyStroke(KEY_F6);
-  else if (b.equals("F7")) sendKeyStroke(KEY_F7);
-  else if (b.equals("F8")) sendKeyStroke(KEY_F8);
-  else if (b.equals("F9")) sendKeyStroke(KEY_F9);
-  else if (b.equals("F10")) sendKeyStroke(KEY_F10);
-  else if (b.equals("F11")) sendKeyStroke(KEY_F11);
-  else if (b.equals("F12")) sendKeyStroke(KEY_F12);
-  else if (b.equals("SPACE")) sendKeyStroke(' ');
+  else if (b.equals("UP") || b.equals("UPARROW")) DigiKeyboard(KEY_ARROW_UP);
+  else if (b.equals("DOWN") || b.equals("DOWNARROW")) DigiKeyboard(KEY_ARROW_DOWN);
+  else if (b.equals("LEFT") || b.equals("LEFTARROW")) DigiKeyboard(KEY_ARROW_LEFT);
+  else if (b.equals("RIGHT") || b.equals("RIGHTARROW")) DigiKeyboard(KEY_ARROW_RIGHT);
+  else if (b.equals("DELETE")) DigiKeyboard(KEY_DELETE);
+  else if (b.equals("PAGEUP")) DigiKeyboard(KEY_PAGE_UP);
+  else if (b.equals("PAGEDOWN")) DigiKeyboard(KEY_PAGE_DOWN);
+  else if (b.equals("HOME")) DigiKeyboard(KEY_HOME);
+  else if (b.equals("ESC")) DigiKeyboard(KEY_ESCAPE);
+  else if (b.equals("BACKSPACE")) DigiKeyboard(KEY_DELETE);
+  else if (b.equals("INSERT")) DigiKeyboard(KEY_INSERT);
+  else if (b.equals("TAB")) DigiKeyboard(KEY_TAB);
+  else if (b.equals("END")) DigiKeyboard(KEY_END);
+  else if (b.equals("CAPSLOCK")) DigiKeyboard(KEY_CAPS_LOCK);
+  else if (b.equals("F1")) DigiKeyboard(KEY_F1);
+  else if (b.equals("F2")) DigiKeyboard(KEY_F2);
+  else if (b.equals("F3")) DigiKeyboard(KEY_F3);
+  else if (b.equals("F4")) DigiKeyboard(KEY_F4);
+  else if (b.equals("F5")) DigiKeyboard(KEY_F5);
+  else if (b.equals("F6")) DigiKeyboard(KEY_F6);
+  else if (b.equals("F7")) DigiKeyboard(KEY_F7);
+  else if (b.equals("F8")) DigiKeyboard(KEY_F8);
+  else if (b.equals("F9")) DigiKeyboard(KEY_F9);
+  else if (b.equals("F10")) DigiKeyboard(KEY_F10);
+  else if (b.equals("F11")) DigiKeyboard(KEY_F11);
+  else if (b.equals("F12")) DigiKeyboard(KEY_F12);
+  else if (b.equals("SPACE")) DigiKeyboard(' ');
   //else Serial.println("not found :'"+b+"'("+String(b.length())+")");
 }
-
