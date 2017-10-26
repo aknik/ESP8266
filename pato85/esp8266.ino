@@ -1,4 +1,7 @@
 #include <SoftwareSerial.h>
+#include "FS.h"
+
+File f;
 
 #define rxPin 14
 #define txPin 12
@@ -16,42 +19,7 @@
 #define KEY_ERR_ROLLOVER      0x01     // Keyboard ErrorRollOver
 #define KEY_POSTFAIL          0x02     // Keyboard POSTFail
 #define KEY_ERR_UNDEFINED     0x03     // Keyboard ErrorUndefined
-#define KEY_A                 0x04     // Keyboard a and A
-#define KEY_B                 0x05     // Keyboard b and B
-#define KEY_C                 0x06     // Keyboard c and C
-#define KEY_D                 0x07     // Keyboard d and D
-#define KEY_E                 0x08     // Keyboard e and E
-#define KEY_F                 0x09     // Keyboard f and F
-#define KEY_G                 0x0A     // Keyboard g and G
-#define KEY_H                 0x0B     // Keyboard h and H
-#define KEY_I                 0x0C     // Keyboard i and I
-#define KEY_J                 0x0D     // Keyboard j and J
-#define KEY_K                 0x0E     // Keyboard k and K
-#define KEY_L                 0x0F     // Keyboard l and L
-#define KEY_M                 0x10     // Keyboard m and M
-#define KEY_N                 0x11     // Keyboard n and N
-#define KEY_O                 0x12     // Keyboard o and O
-#define KEY_P                 0x13     // Keyboard p and P
-#define KEY_Q                 0x14     // Keyboard q and Q
-#define KEY_R                 0x15     // Keyboard r and R
-#define KEY_S                 0x16     // Keyboard s and S
-#define KEY_T                 0x17     // Keyboard t and T
-#define KEY_U                 0x18     // Keyboard u and U
-#define KEY_V                 0x19     // Keyboard v and V
-#define KEY_W                 0x1A     // Keyboard w and W
-#define KEY_X                 0x1B     // Keyboard x and X
-#define KEY_Y                 0x1C     // Keyboard y and Y
-#define KEY_Z                 0x1D     // Keyboard z and Z
-#define KEY_1                 0x1E     // Keyboard 1 and !
-#define KEY_2                 0x1F     // Keyboard 2 and
-#define KEY_3                 0x20     // Keyboard 3 and #
-#define KEY_4                 0x21     // Keyboard 4 and $
-#define KEY_5                 0x22     // Keyboard 5 and %
-#define KEY_6                 0x23     // Keyboard 6 and ^
-#define KEY_7                 0x24     // Keyboard 7 and &
-#define KEY_8                 0x25     // Keyboard 8 and *
-#define KEY_9                 0x26     // Keyboard 9 and (
-#define KEY_0                 0x27     // Keyboard 0 and )
+
 #define KEY_ENTER             0x28     // Keyboard Return (ENTER)
 #define KEY_ESCAPE            0x29     // Keyboard ESCAPE
 #define KEY_DELETE            0x2A     // Keyboard DELETE (Backspace)
@@ -68,7 +36,7 @@
 #define KEY_GRAVE             0x35     // Keyboard Grave Accent and Tilde
 #define KEY_COMMA             0x36     // Keyboard , and <
 #define KEY_DOT               0x37     // Keyboard . and >
-#define KEY_SLASH             0x38     // Keyboard / and ?
+#define KEY_SLASH             0x38    24 // Keyboard / and ?
 #define KEY_CAPS_LOCK         0x39     // Keyboard Caps Lock
 #define KEY_F1                0x3A     // Keyboard F1
 #define KEY_F2                0x3B     // Keyboard F2
@@ -242,6 +210,22 @@
 
 SoftwareSerial mySerial(rxPin,txPin); // RX = rxPin, TX  = txPin
 
+const static uint8_t HIDTable[] =  {
+  0x00, // 0
+  0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x2A, 0x00, 0x00, // 10
+  0x00, 0x00, 0x28, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, // 20
+  0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x29, 0x00, 0x00, 0x00, // 30
+  0x00, 0x2c, 0x1e, 0x34, 0x20, 0x21, 0x22, 0x24, 0x34, 0x26, // 40
+  0x27, 0x25, 0x2e, 0x36, 0x2d, 0x37, 0x24, 0x27, 0x1e, 0x1f, // 50
+  0x20, 0x21, 0x22, 0x23, 0x24, 0x25, 0x26, 0x33, 0x33, 0x36, // 60
+  0x2e, 0x37, 0x38, 0x1f, 0x04, 0x05, 0x06, 0x07, 0x08, 0x09, // 70
+  0x0a, 0x0b, 0x0c, 0x0d, 0x0e, 0x0f, 0x10, 0x11, 0x12, 0x13, // 80
+  0x14, 0x15, 0x16, 0x17, 0x18, 0x19, 0x1a, 0x1b, 0x1c, 0x1d, // 90
+  0x2f, 0x31, 0x30, 0x23, 0x2d, 0x35, 0x04, 0x05, 0x06, 0x07, // 100
+  0x08, 0x09, 0x0a, 0x0b, 0x0c, 0x0d, 0x0e, 0x0f, 0x10, 0x11, // 110
+  0x12, 0x13, 0x14, 0x15, 0x16, 0x17, 0x18, 0x19, 0x1a, 0x1b, // 120
+  0x1c, 0x1d, 0x2f, 0x31, 0x30, 0x35, 127 // 127
+};
 
 int i = 1; //how many times the payload should run (-1 for endless loop)
 bool blink=true;
@@ -249,17 +233,10 @@ bool blink=true;
 uint8_t key ;
 uint8_t mod ;
 
-#define DUCK_LEN 118
-uint8_t duckraw [DUCK_LEN] = {
-  0x0, 0xff, 0x0, 0xff, 0x0, 0xff, 0x0, 0xff, 0x0, 0xff, 0x0, 0xff, 0x0, 0xff, 0x0, 0xff, 0x0, 0xff, 0x0, 0xff, 0x0, 0xff, 0x0, 0xc3, 0x3b, 0x4, 0x0, 0xff, 0x0, 0xf5, 0x1b, 0x0, 0x17, 0x0, 0x8, 0x0, 0x15, 0x0, 0x10, 0x0, 0x0, 0xff, 0x0, 0xf5, 0x28, 0x0, 0x0, 0xff, 0x0, 0xff, 0x0, 0xf0, 0x13, 0x0, 0x1a, 0x0, 0x7, 0x0, 0x0, 0xff, 0x0, 0xf5, 0x28, 0x0, 0x0, 0xff, 0x0, 0x2d, 0xc, 0x0, 0x7, 0x0, 0x0, 0xff, 0x0, 0x2d, 0x28, 0x0, 0x0, 0xff, 0x0, 0xf5, 0x6, 0x0, 0x4, 0x0, 0x17, 0x0, 0x2c, 0x0, 0x24, 0x2, 0x8, 0x0, 0x17, 0x0, 0x6, 0x0, 0x24, 0x2, 0x13, 0x0, 0x4, 0x0, 0x16, 0x0, 0x16, 0x0, 0x1a, 0x0, 0x7, 0x0, 0x0, 0xff, 0x0, 0xf5, 0x28, 0x0
-};
-
-String bufferStr = "DELAY 3000\rALT F2\rDELAY 500\rSTRING xterm\rDELAY 500\rENTER\rDELAY 750\rSTRING pwd\rDELAY 500\rENTER\rDELAY 300\rSTRING id\rDELAY 300\rENTER\rDELAY 500\rSTRING cat /etc/passwd\rDELAY 500\rENTER";
-
-
 String last = "";
 int defaultDelay = 0;
 
+String bufferStr = "";
 
 
 void setup() {
@@ -267,53 +244,40 @@ void setup() {
   Serial.begin(9600); //Start Serial
   mySerial.begin(9600); //Start mySerial    
   // Transmition PIN (SoftSerial)
-  pinMode(rxPin, INPUT);
-  pinMode(txPin, OUTPUT);
+   // pinMode(rxPin, INPUT);
+   // pinMode(txPin, OUTPUT);
   
+  SPIFFS.begin();
+  
+  Serial.flush();
+  mySerial.flush();
   delay(1000);
-  Serial.println("\nSoftware serial test started");
+  Serial.println("\nDucky started");
+
+
+while (mySerial.available() > 0 )  { delay(0);   } //  Espera señal de ATTINY de que está listo para recibir datos
+    
+}
+
  
-}
-
-void poop()
-{
-
-  //should code be runned in this loop?
-  if (i != 0) {
-    
-    //parse raw duckencoder script
-    for (int i=0; i<DUCK_LEN; i+=2)
-    {
-      key = duckraw[i];
-      mod = duckraw[i+1];
-      if (key == 0) //delay (a delay>255 is split into a sequence of delays)
-      {
-        delay(mod);
-      }
-      else DigiKeyboard(key);
-
-    }
-    i--;
-    Serial.println(".............................");
-  }
-    delay(3000); //wait 3000 milliseconds before next loop iteration
-    
-  
-}
-
 
 void loop(){
-    
-     //     Serial.println(bufferStr);
 
-  
-  if(bufferStr.length() > 0){
-    
+     f = SPIFFS.open("/f.txt", "r");
+     if (!f) {
+    Serial.println("file open failed");
+    ESP.restart();}
+    Serial.println("\n\n\n====== Reading SPIFFS file =======");
+ 
+       
+    while(f.available()) {
+
+    bufferStr=f.readStringUntil('\n');
+
     bufferStr.replace("\r","\n");
     bufferStr.replace("\n\n","\n");
     bufferStr.replace("\n ","\n");
-    
-    while(bufferStr.length() > 0){
+      
       int latest_return = bufferStr.indexOf("\n");
       if(latest_return == -1){
          Serial.println("\nrun: "+bufferStr);
@@ -329,44 +293,33 @@ void loop(){
     
     bufferStr = "";
         
-  }
-
+ 
 } // LOOP
 
 void DigiKeyboard(uint8_t key ){
 
+      
       if(key > 0 || mod > 0 ) {
         
+      mySerial.flush();
       
       mySerial.write(key);
-      mySerial.write(mod); 
-
-      Serial.print(key,HEX);Serial.print(",");
-      Serial.print(mod,HEX);Serial.print(",");
-
-      delay(70);
-      mod = 0;
-
-      }
+      mySerial.write(mod);
       
-} 
+while (mySerial.available() != 2)  { delay(0);   } // Espera confirmacion del ATTINY
 
-void DKeyboard(uint8_t key, uint8_t mod ){
+      // Serial.print(key,HEX);Serial.print(",");
+      // Serial.print(mod,HEX);Serial.print(",");
+
+                      
+///////////////////////////if(key == 0 ) delay(mod);
+                      
       
-      mySerial.write(key);
-      mySerial.write(mod); 
-
-      Serial.print(key,HEX);Serial.print(",");
-      Serial.print(mod,HEX);Serial.print(",");
-
-      delay(70);
       
-} 
+                                } 
+}// THE END -0x5d
 
 
-
-
-// THE END
 
 
 void Line(String _line)
@@ -376,7 +329,33 @@ void Line(String _line)
   if(firstSpace == -1) Press(_line);
     else if(_line.substring(0,firstSpace) == "STRING"){
     
-    for(int i=firstSpace+1;i<_line.length();i++) { mod = 0xff ; DigiKeyboard(_line[i]);  }
+    for(int i=firstSpace+1;i<_line.length();i++) { 
+      
+      
+      
+      Serial.print(HIDTable[_line[i]],HEX);Serial.print("-");Serial.print(_line[i]);Serial.print(" ");
+      
+      mod = 0 ;
+      
+      if(_line[i] == 0x2f ) mod = (MOD_SHIFT_LEFT);
+      
+      int tecla = HIDTable[_line[i]];
+      
+      DigiKeyboard(tecla);
+      
+      
+      
+      }
+
+
+
+
+
+
+
+
+
+    
   }
   else if(_line.substring(0,firstSpace) == "DELAY"){
     int delaytime = _line.substring(firstSpace + 1).toInt();
