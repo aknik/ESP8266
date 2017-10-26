@@ -6,35 +6,47 @@
 
 uint8_t key ;
 uint8_t mod ;
-      
+
+   
 SoftSerial ExternSerial(P_RX, P_TX); 
 
 
 void setup(){
 
 ExternSerial.begin(9600);
-// initialize the digital pin as an output.
+
+
 
 
   DigiKeyboard.sendKeyStroke(0);
-  delay(500);
-  //DigiKeyboard.println("");
-  //DigiKeyboard.println("clear");
+  ExternSerial.flush();
 
+ExternSerial.write(0xFF); // Señal de ready al ESP
+ExternSerial.write(0xFF); // Señal de ready al ESP
 
 }
 
 
 void loop() {
-  
 
-  if (ExternSerial.overflow()) {
-   DigiKeyboard.println("SoftwareSerial overflow!");}
 
-  if (ExternSerial.available() >= 2) { 
+if (ExternSerial.overflow()) { DigiKeyboard.println("SoftwareSerial overflow!");}
+
+
+if (ExternSerial.available() == 2 ) { 
     
     key = ExternSerial.read();
     mod = ExternSerial.read();
+
+    
+    
+    ExternSerial.write(key);
+    ExternSerial.write(mod);
+
+   
+    
+ }
+
 
       if (key == 0) //delay (a delay>255 is split into a sequence of delays)
       {
@@ -42,15 +54,15 @@ void loop() {
         
       }
       else 
-       
-
+    
     DigiKeyboard.sendKeyStroke(key,mod);
+    delay(30);
+    DigiKeyboard.update();
+    //ExternSerial.flush();
+    
 
-
-
-                                    }
+                                  
 } 
-
 
 
 
