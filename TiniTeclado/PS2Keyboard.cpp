@@ -6,7 +6,7 @@ static volatile uint8_t head, tail;
 static uint8_t DataPin;
 static uint8_t CharBuffer=0;
 static uint8_t UTF8next=0;
-static uint8_t K[140];
+static uint8_t K[255];
 
 // The ISR for the external interrupt
 void ps2interrupt(void)
@@ -57,17 +57,6 @@ static inline uint8_t get_scan_code(void)
 // http://www.quadibloc.com/comp/scan.htm
 // http://www.computer-engineering.org/ps2keyboard/scancodes2.html
 
-// These arrays provide a simple key map, to turn scan codes into ISO8859
-// output.  If a non-US keyboard is used, these may need to be modified
-// for the desired output.
-//
-
-
-
-
-
-
-
 static char get_iso8859_code(void)
 {
 	static uint8_t state=0;
@@ -113,8 +102,26 @@ int PS2Keyboard::read() {
 		
 	}
 	
-	if (result == 0xE0 ) {result = 0x7F;}
-	if (result == 0xF0 ) {result = 0x80;}
+
+		
+		
+		
+	if (result == 0xE0 ) {
+		
+		result = get_iso8859_code();
+		
+		if (result == 0x11 ) { result = 0x40; }
+		
+		
+		
+		}
+	
+	
+	
+	
+	
+	
+	
 	
 	result = K[result];	// Conversion pskeyboard codes a HID USB codes ...
 	
@@ -369,9 +376,16 @@ void PS2Keyboard::begin(uint8_t data_pin, uint8_t irq_pin ) {
   K[0x14] = 101; // MOD_CONTROL_LEFT;
   K[0x11] = 104; //MOD_ALT_LEFT;
   K[0x59] = 102; // MOD_SHIFT_RIGHT;
+  K[0x40] = 140; //MOD_ALT_RIGHT;
+
   
-  K[0x7F] = 0xE0;
-  K[0x80] = 0xF0;
+  K[0xF0] = 0xF0;
+  K[0xE0] = 0xE0;
+  
+  
+  
+  
+  
   
 }
 
