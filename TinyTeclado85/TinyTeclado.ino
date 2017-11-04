@@ -24,33 +24,30 @@ if (keyboard.available()) c = keyboard.read();
 return c;
 }
 
+
 void loop()
 {
-
 c = sig();
 
-// DigiKeyboard.print(c,HEX);
+//DigiKeyboard.print(c,HEX);
 
-if ( c==102 ){ m = 2; c = 0; }
-if ( c==104 ){ m = 4; c = 0; }
-if ( c==140 ){ m = 0x40 ; c = 0; }
+
+if ( c==101 ){ m = m | 1; c = 0; }
+if ( c==102 ){ m = m | 2; c = 0; }
+if ( c==104 ){ m = m | 4; c = 0; }
+if ( c==140 ){ m = m | 0x40 ; c = 0; }
+
+if ( c==180 ){ m = m ^ 0x40 ; c = 0; }
 
 if ( c==0xf0 ) { 
-  
   c = sig(); 
-  
-  if ( c==102 ) m = 0;
-  if ( c==104 ) m = 0;
-  if ( c==140 ) m = 0;
-  
+  if ( c==101 ) m = m ^ 1;
+  if ( c==102 ) m = m ^ 2;
+  if ( c==104 ) m = m ^ 4;
+
   c = 0; 
   }
-
- //if ( c != 0 )DigiKeyboard.print(m,HEX);
- 
- DigiKeyboard.sendKeyStroke(c,m);
- 
-
+DigiKeyboard.sendKeyStroke(c,m);
 }
 
 
