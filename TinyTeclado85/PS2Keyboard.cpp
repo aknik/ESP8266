@@ -111,16 +111,14 @@ int PS2Keyboard::read() {
 		result = get_iso8859_code();
 		
 		if (result == 0x11 ) { result = 0x40; }
+		////////////////////
 		
-		
-		
+		if (result == 0xF0 ) { result = get_iso8859_code(); if (result == 0x11 ) { result = 0x84; }}
+		////////////////////
 		}
 	
 	
-	
-	
-	
-	
+
 	
 	
 	result = K[result];	// Conversion pskeyboard codes a HID USB codes ...
@@ -286,8 +284,6 @@ void PS2Keyboard::begin(uint8_t data_pin, uint8_t irq_pin ) {
     attachInterrupt(irq_num, ps2interrupt, FALLING);
   }
   
-
-
   K[0x1C] = 4;
   K[0x32] = 5;
   K[0x21] = 6;
@@ -377,15 +373,10 @@ void PS2Keyboard::begin(uint8_t data_pin, uint8_t irq_pin ) {
   K[0x11] = 104; //MOD_ALT_LEFT;
   K[0x59] = 102; // MOD_SHIFT_RIGHT;
   K[0x40] = 140; //MOD_ALT_RIGHT;
-
+  K[0x84] = 180; //MOD_ALT_RIGHT; off
   
   K[0xF0] = 0xF0;
   K[0xE0] = 0xE0;
   
   
-  
-  
-  
-  
 }
-
