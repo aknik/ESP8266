@@ -102,6 +102,9 @@ int PS2Keyboard::read() {
 		
 	}
 	
+	
+	
+	//if (result == 0xf0 ) { result = get_iso8859_code();result = false ;}
 
 		
 		
@@ -110,21 +113,31 @@ int PS2Keyboard::read() {
 		
 		result = get_iso8859_code();
 		
+		if (result == 0x14 ) { result = 0x14; }
 		if (result == 0x11 ) { result = 0x40; }
 		////////////////////
 		
-		if (result == 0xF0 ) { result = get_iso8859_code(); if (result == 0x11 ) { result = 0x84; }}
-		////////////////////
+		if (result == 0xF0 ) { result = get_iso8859_code(); 
+			if (result == 0x11 ) { result = 0x84; }
+				else {result  = false ;}
+			                 }
+			
 		}
+		
+		
+		
+		
+	result = K[result];
 	
+	if (!result) return -1;
+	return result;
 	
 
 	
 	
-	result = K[result];	// Conversion pskeyboard codes a HID USB codes ...
+	// Conversion pskeyboard codes a HID USB codes ...
 	
-	if (!result) return -1;
-	return result;
+
 }
 
 
@@ -350,13 +363,13 @@ void PS2Keyboard::begin(uint8_t data_pin, uint8_t irq_pin ) {
   K[0x71] = 99;
   K[0x70] = 98;
   K[0x69] = 89;
-  K[0x72] = 90;
+  K[0x72] = 0x51;  // DownArrow
   K[0x7A] = 91;
-  K[0x6B] = 92;
+  K[0x6B] = 0x50;  // LeftArrow
   K[0x73] = 93;
-  K[0x74] = 94;
+  K[0x74] = 0x4F ; // RightArrow 
   K[0x6C] = 95;
-  K[0x75] = 96;
+  K[0x75] = 0x52 ; // UpArrow
   K[0x7D] = 97;
   K[0x5B] = 48;
   K[0x4C] = 51;
