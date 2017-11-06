@@ -1,6 +1,6 @@
 Adaptador Teclado PS2 a USB con un Digispark (ATTiny85)
 
-
+![](http://mario.mtechcreations.com/wp-content/uploads/2013/11/PS2-USB-Trinket-Wireing.jpg)(ATTiny85)
 
 Teclado       Digispark
 
