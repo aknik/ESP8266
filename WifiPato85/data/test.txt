@@ -1,0 +1,16 @@
+DELAY 2000
+STRING !"#$%&'()*+,-./0123456789:;<=>?@ABCDEFGHIJKLMNOPQRSTUVWXYZ[\]abcdefghijklmnopqrstuvwxyz{|}~áéíóú ÁÉÍÓÚ Üü Ññ çÇ €€€€€€ 
+ENTER
+ENTER
+STRING El cosmos es todo lo que eso lo que fue o lo que será alguna vez. Nuestras contemplaciones más tibias del Cosmos nos conmueven: un escalofrío recorre nuestro espinazo, la voz se nos quiebra, hay una sensación débil, como la de un recuerdo lejano, o la de caer desde lo alto. Sabemos que nos estamos acercando al mayor de los misterios. 
+ENTER
+STRING El tamaño y la edad del Cosmos superan la comprensión normal del hombre. Nuestro diminuto hogar planetario está perdido en algún punto entre la inmensidad y la eternidad.
+ENTER
+STRING En una perspectiva cósmica la mayoría de las preocupaciones humanas parecen insignificantes, incluso frívolas. Sin embargo nuestra especie es joven, curiosa y valiente, y promete mucho. En los últimos milenios hemos hecho los descubrimientos más asombrosos e inesperados sobre el Cosmos y el lugar que ocupamos en él; seguir el hilo de estas exploraciones es realmente estimulante.
+ENTER
+STRING Nos recuerdan que los hombres han evolucionado para admirar se de las cosas, que comprender es una alegría, que el conocimiento es requisito esencial para la supervivencia. Creo que nuestro futuro depende del grado de comprensión que tengamos del Cosmos en el cual flotamos como una mota de polvo en el cielo de la mañana.
+ENTER
+STRING Estas exploraciones exigieron a la vez escepticismo e imaginación. La imaginación nos llevará a menudo a mundos que no existieron nunca. Pero sin ella no podemos llegar a ninguna parte. El escepticismo nos permite distinguir la fantasía de la realidad, poner a prueba nuestras especulaciones. La riqueza del Cosmos lo supera todo: riqueza en hechos elegantes, en exquisitas interrelaciones, en la maquinaria sutil del asombro.
+ENTER
+STRING La superficie de la Tierra es la orilla del océano cósmico. Desde ella hemos aprendido la mayor parte de lo que sabemos. Recientemente nos hemos adentrado un poco en el mar, vadeando lo suficiente para mojamos los dedos de los pies, o como máximo para que el agua nos llegara al tobillo. El agua parece que nos invita a continuar. El océano nos llama. Hay una parte de nuestro ser conocedora de que nosotros venimos de allí. Deseamos retomar. No creo que estas aspiraciones sean irreverentes, aunque puedan disgustar a los dioses, sean cuales fueren los dioses posibles. 
+ENTER
