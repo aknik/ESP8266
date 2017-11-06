@@ -3,12 +3,19 @@ Adaptador Teclado PS2 a USB con un Digispark (ATTiny85)
 La idea del adaptador de teclado viene de este circuito, las conexiones son las mismas que para el Digispark.
 ![](http://mario.mtechcreations.com/wp-content/uploads/2013/11/PS2-USB-Trinket-Wireing.jpg)
 
-Teclado       Digispark
+Teclado         Digispark.
 
-Rojo          5v
-Negro         GND
-Blanco        P0    Pin 0 → I2C SDA, PWM (LED on Model B)
-Amarillo      P2    Pin 2 → I2C SCK, Analog In
+
+
+
+Rojo      >>>>>>>>>>      5v Arduino.
+
+Negro     >>>>>>>>>>      GND
+
+Blanco    >>>>>>>>>>      P0    Pin 0 → I2C SDA, PWM (LED on Model B)
+
+Amarillo  >>>>>>>>>>      P2    Pin 2 → I2C SCK, Analog In
+
 
  Pin outs:
 
