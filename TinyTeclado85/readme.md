@@ -1,3 +1,7 @@
+Adaptador Teclado PS2 a USB con un Digispark (ATTiny85)
+
+
+
 Teclado       Digispark
 
 Rojo          5v
@@ -24,3 +28,6 @@ Pin 3 	GND 	Masa
 Pin 4 	VCC 	+5 V CC a 100 mA
 Pin 5 	+CLK 	Reloj salida
 Pin 6 	Reservado 	Reservadob
+
+
+Los LED de estado del teclado no funcionan ,si alguien es capaz de ayudarme con eso, estaria genial.
