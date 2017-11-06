@@ -38,4 +38,4 @@ Pin 5 	+CLK 	Reloj salida
 Pin 6 	Reservado 	Reservadob
 
 
-Los LED de estado del teclado no funcionan ,si alguien es capaz de ayudarme con eso, estaria genial.
+Los LED de estado del teclado no funcionan ,sí alguien es capaz de ayudarme con eso, estaría genial.
