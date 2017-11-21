@@ -2,8 +2,10 @@
 #define encoderPinB 0
 #define buttonpin 2
 #define loudspeakerpin 1
+
 #include "Time.h"//I did NOT make this library
 #include "PinChangeInterruptSimple.h"//And also this library wasn't made by me
+
 volatile  int encoderPos = 0;//position of the encoder, volatile because it changes on interrupt
 unsigned int lastReportedPos = 1;   // change management
 static boolean rotating=false;      // debounce management
@@ -30,6 +32,7 @@ unsigned long lastmillis=0;
 unsigned long lastcheckedtime=0;
 int onemetervalue=300;//how long (in encoder steps) is one meter
 boolean driftenabled=false;//are we correcting time drift?
+
 void setup() {
   pinMode(encoderPinA, INPUT);
   pinMode(encoderPinB, INPUT);
@@ -146,6 +149,7 @@ int setvalue(boolean minutes)//set value; used for clock and egg timer routines
     }
   }
 }
+
 void wrapEncValues()
 {
   int beepnum=-1;
@@ -177,6 +181,7 @@ void wrapEncValues()
     beepnumber(beepnum);
 
 }
+
 void playSound(int soundtype)//routine for beeping out specific codes (for zero, entering program, alarm and "OK beep" which is also used for separating hours and minutes when displaying time
 {
   switch (soundtype)
@@ -215,6 +220,7 @@ void playSound(int soundtype)//routine for beeping out specific codes (for zero,
     break;
   }
 }
+
 
 void loop()
 { //Do stuff here
