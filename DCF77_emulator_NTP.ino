@@ -1,4 +1,4 @@
-//  Basado en le trabajo de Michael Margolis, Tom Igoe ,Ivan Grokhotkov  DOMINIO PUBLICO
+//  Basado en el trabajo de Michael Margolis, Tom Igoe ,Ivan Grokhotkov  DOMINIO PUBLICO
 #include <NTPClient.h>
 #include <ESP8266WiFi.h>
 #include <ESP8266WiFiMulti.h>
@@ -31,8 +31,8 @@ void setup(){
   
 tickerSetLow.attach_ms(100, DcfOut );
 si5351.init(SI5351_CRYSTAL_LOAD_8PF, 0, 0);
-si5351.set_freq(7750000ULL, SI5351_CLK0);
-si5351.drive_strength(SI5351_CLK0, SI5351_DRIVE_6MA);
+si5351.set_freq(7750000ULL, SI5351_CLK0); // La frecuencia de DCF77 es 77.5 khz
+si5351.drive_strength(SI5351_CLK0, SI5351_DRIVE_6MA); // La potencia maxima de emision del si5351 es DRIVE_8MA
 si5351.output_enable(SI5351_CLK0, 0) ; 
 
   pinMode (ledPin, OUTPUT);
@@ -83,21 +83,12 @@ void CodificaTempo() {
 
   epoch = timeClient.getEpochTime() + 60 ; // DCF77 envia el minuto siguiente al actual
  
-
    //calculate actual day to evaluate the summer/winter time of day ligh saving
     DayOfW = weekday(epoch);
     Giorno = day(epoch);
     Mese = month(epoch);
     Anno = year(epoch);
-     /*
-    Serial.print(">>> : ");       // UTC is the time at Greenwich Meridian (GMT)
-    Serial.print(Giorno);
-    Serial.print('/');
-    Serial.print(Mese);
-    Serial.print('/');
-    Serial.print(Anno);
-    Serial.print(' ');
-  */
+
     //calcolo ora solare o legale
     Dls = 0;    //default winter time
     //From April to september we are surely on summer time
@@ -124,25 +115,12 @@ void CodificaTempo() {
       };
     };
 
-    /*Serial.print("Dls:");
-    Serial.print(Dls);
-    Serial.print(' ');*/
-    //add one hour if we are in summer time
     if (Dls == 1)
       epoch += 3600;
-
-    //now that we know the dls state, we can calculate the time too
-    // print the hour, minute and second:
+  
     Ore = hour(epoch);
     Minuti = minute(epoch);
     Secondi = second(epoch);
-    /*
-    Serial.print(Ore); // print the hour
-    Serial.print(':');
-    Serial.print(Minuti); // print the minute
-    Serial.print(':');
-    Serial.println(Secondi); // print the second
-*/
 
   int n,Tmp,TmpIn;
   int ParityCount = 0;
@@ -195,7 +173,7 @@ void CodificaTempo() {
     ParityCount += Tmp;
     TmpIn >>= 1;
   }
-  //calcola i bits per il giorno della settimana  La libreria de Arduino el Domingo es 1 y el sabado 6, en DCF77  el domingo es 7 !!!
+  //La libreria de Arduino el Domingo es 1 y el sabado 6... pero en DCF77 el domingo es 7 !!!
   DayOfW = DayOfW - 1; if (DayOfW == 0) DayOfW = 7;
   TmpIn = Bin2Bcd(DayOfW);
   for (n=42;n<45;n++) {
@@ -213,7 +191,7 @@ void CodificaTempo() {
     TmpIn >>= 1;
   }
   //calcola i bits per l'anno
-  TmpIn = Bin2Bcd(Anno - 2000);   //a noi interesa solo l'anno con ... il millenniumbug !
+  TmpIn = Bin2Bcd(Anno - 2000);   
   for (n=50;n<58;n++) {
     Tmp = TmpIn & 1;
     ArrayImpulsi[n] = Tmp + 1;
@@ -245,8 +223,7 @@ int Bin2Bcd(int dato) {
 
 void DcfOut() {
 
-  //Serial.println(second()); 0-11110111100100-001001-01000001-1000010-011000-111-10100-000110001
-  
+ 
     switch (ContaImpulsiParziale++) {
       case 0:
    
